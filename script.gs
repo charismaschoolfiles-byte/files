@@ -1,77 +1,64 @@
 // =====================================================
-// GOOGLE APPS SCRIPT FOR CHARACTER ACTIVITY
-// This script saves student submissions to Google Drive
+// GOOGLE APPS SCRIPT - MULTIPLE IMAGE UPLOAD HANDLER
+// Saves multiple student images into a Drive folder
 // =====================================================
 
-// 🔴 CHANGE THIS TO YOUR GOOGLE DRIVE FOLDER ID
-// Get it from: https://drive.google.com/drive/folders/YOUR_FOLDER_ID_HERE
-const DRIVE_FOLDER_ID = "YOUR_FOLDER_ID_HERE";
+// 🔴 PUT YOUR REAL DRIVE FOLDER ID HERE
+const DRIVE_FOLDER_ID = "1EOflujabkwIqnlhOsx8he7QbQ3y8wDt4";
 
+/**
+ * Main endpoint for form submissions
+ * Expected JSON format:
+ * {
+ *   "studentName": "John",
+ *   "images": ["base64_1", "base64_2", ...]
+ * }
+ */
 function doPost(e) {
   try {
+    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+
     const data = JSON.parse(e.postData.contents);
-    const studentName = data.studentName;
-    const timestamp = data.timestamp;
-    
-    // Create student folder
-    const parentFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-    const studentFolderName = `${studentName}_${new Date().toISOString().split('T')[0]}`;
-    let studentFolder = null;
-    
-    // Check if folder exists
-    const folders = parentFolder.getFoldersByName(studentFolderName);
-    if (folders.hasNext()) {
-      studentFolder = folders.next();
-    } else {
-      studentFolder = parentFolder.createFolder(studentFolderName);
+    const studentName = data.studentName || "Unknown";
+    const images = data.images || [];
+
+    if (!images.length) {
+      return jsonResponse({ status: "error", message: "No images received" });
     }
-    
-    // Save photos
-    if (data.photos) {
-      const photosFolder = createOrGetFolder(studentFolder, 'Photos');
-      data.photos.forEach(photo => {
-        if (photo.data) {
-          const base64 = photo.data.split(',')[1];
-          const blob = Utilities.newBlob(Utilities.base64Decode(base64), 'image/png', `${photo.character}.png`);
-          photosFolder.createFile(blob);
-        }
-      });
-    }
-    
-    // Save voice recordings
-    if (data.voices) {
-      const voicesFolder = createOrGetFolder(studentFolder, 'Voices');
-      data.voices.forEach(voice => {
-        if (voice.data) {
-          const base64 = voice.data.split(',')[1];
-          const blob = Utilities.newBlob(Utilities.base64Decode(base64), 'audio/wav', `${voice.character}.wav`);
-          voicesFolder.createFile(blob);
-        }
-      });
-    }
-    
-    // Save submission info
-    const infoBlob = Utilities.newBlob(
-      `Student: ${studentName}\nSubmitted: ${timestamp}`,
-      'text/plain',
-      'submission_info.txt'
-    );
-    studentFolder.createFile(infoBlob);
-    
-    return ContentService.createTextOutput(JSON.stringify({ success: true }))
-      .setMimeType(ContentService.MimeType.JSON);
+
+    const timestamp = new Date().getTime();
+    const savedFiles = [];
+
+    // 🔁 Loop through all images properly
+    images.forEach((imgBase64, index) => {
+      const decoded = Utilities.base64Decode(imgBase64);
+      const blob = Utilities.newBlob(decoded, "image/png", 
+        `${studentName}_${timestamp}_${index + 1}.png`
+      );
+
+      const file = folder.createFile(blob);
+      savedFiles.push(file.getUrl());
+    });
+
+    return jsonResponse({
+      status: "success",
+      uploaded: savedFiles.length,
+      files: savedFiles
+    });
+
   } catch (error) {
-    Logger.log('Error: ' + error);
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return jsonResponse({
+      status: "error",
+      message: error.toString()
+    });
   }
 }
 
-function createOrGetFolder(parentFolder, folderName) {
-  const folders = parentFolder.getFoldersByName(folderName);
-  if (folders.hasNext()) {
-    return folders.next();
-  } else {
-    return parentFolder.createFolder(folderName);
-  }
+/**
+ * Helper: clean JSON response
+ */
+function jsonResponse(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
