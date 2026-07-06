@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Activity Submission</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Character Activity Submission</h1>
+            <p>Upload your photos for each character activity</p>
+        </div>
+
+        <div class="form-section">
+            <div class="input-group">
+                <label for="studentName">Your Name:</label>
+                <input type="text" id="studentName" placeholder="Enter your name" required>
+            </div>
+
+            <div class="characters-section">
+                <h2>Upload Photos for Each Character</h2>
+                <div class="characters-grid">
+                    <!-- Elsa -->
+                    <div class="character-card">
+                        <div class="character-header">
+                            <h3>Elsa</h3>
+                            <span class="character-emoji">❄️</span>
+                        </div>
+                        <div id="elsaPreview" class="image-preview">
+                            <span class="preview-placeholder">Click to upload photo</span>
+                        </div>
+                        <input type="file" id="elsaInput" class="file-input" accept="image/*" onchange="handleImageUpload('elsa')">
+                        <button class="upload-btn" onclick="triggerUpload('elsa')">📸 Upload Photo</button>
+                        <span id="elsaStatus" class="status-indicator">⭕</span>
+                    </div>
+
+                    <!-- Dory -->
+                    <div class="character-card">
+                        <div class="character-header">
+                            <h3>Dory</h3>
+                            <span class="character-emoji">🐠</span>
+                        </div>
+                        <div id="doryPreview" class="image-preview">
+                            <span class="preview-placeholder">Click to upload photo</span>
+                        </div>
+                        <input type="file" id="doryInput" class="file-input" accept="image/*" onchange="handleImageUpload('dory')">
+                        <button class="upload-btn" onclick="triggerUpload('dory')">📸 Upload Photo</button>
+                        <span id="doryStatus" class="status-indicator">⭕</span>
+                    </div>
+
+                    <!-- Judy -->
+                    <div class="character-card">
+                        <div class="character-header">
+                            <h3>Judy</h3>
+                            <span class="character-emoji">🦌</span>
+                        </div>
+                        <div id="judyPreview" class="image-preview">
+                            <span class="preview-placeholder">Click to upload photo</span>
+                        </div>
+                        <input type="file" id="judyInput" class="file-input" accept="image/*" onchange="handleImageUpload('judy')">
+                        <button class="upload-btn" onclick="triggerUpload('judy')">📸 Upload Photo</button>
+                        <span id="judyStatus" class="status-indicator">⭕</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="submit-section">
+                <button id="submitBtn" class="submit-button" onclick="submitWork()">📤 Submit</button>
+                <div id="submitStatus" class="submit-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
