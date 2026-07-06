@@ -403,7 +403,7 @@
             box-shadow: 0 4px 15px rgba(0, 176, 139, 0.3);
         }
 
-        .submit-btn:hover {
+        .submit-btn:hover:not(:disabled) {
             transform: translateY(-3px);
             box-shadow: 0 8px 25px rgba(0, 176, 139, 0.4);
         }
@@ -449,6 +449,28 @@
 
         .status-message.loading {
             color: var(--purple);
+        }
+
+        .progress-info {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--teal);
+            transition: width 0.3s;
         }
 
         @media (max-width: 768px) {
@@ -498,12 +520,19 @@
     <div class="photo-card">
         <div class="photo-header">
             <h1 id="photo-student-name">Activity</h1>
-            <p>📸 Stage 1: Upload a photo for each character</p>
+            <p>📸 Stage 1: Upload photos for each character</p>
+        </div>
+        
+        <div class="progress-info">
+            <div id="photo-progress-text">0 photos uploaded</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="photo-progress-fill" style="width: 0%"></div>
+            </div>
         </div>
         
         <div class="characters-grid" id="photo-grid"></div>
         
-        <button class="submit-btn" onclick="submitPhotos()">✓ Done with Photos</button>
+        <button class="submit-btn" id="photo-submit-btn" onclick="submitPhotos()">✓ Submit Photos</button>
         <button class="btn-back" onclick="backToStageSelect()">← Back</button>
         
         <div id="photo-status" class="status-message"></div>
@@ -518,9 +547,16 @@
             <p>🎤 Stage 2: Record each character's line</p>
         </div>
         
+        <div class="progress-info">
+            <div id="voice-progress-text">0 recordings done</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="voice-progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+        
         <div class="voice-characters" id="voice-grid"></div>
         
-        <button class="submit-btn" onclick="submitVoices()">🚀 Submit All</button>
+        <button class="submit-btn" id="voice-submit-btn" onclick="submitVoices()">🚀 Submit Recordings</button>
         <button class="btn-back" onclick="backToStageSelect()">← Back</button>
         
         <div id="voice-status" class="status-message"></div>
@@ -583,6 +619,7 @@
         document.getElementById('photo-stage').classList.remove('hidden');
         document.getElementById('photo-student-name').innerText = studentData.studentName;
         buildPhotoGrid();
+        updatePhotoProgress();
     }
 
     function goToVoiceStage() {
@@ -590,6 +627,7 @@
         document.getElementById('voice-stage').classList.remove('hidden');
         document.getElementById('voice-student-name').innerText = studentData.studentName;
         buildVoiceGrid();
+        updateVoiceProgress();
     }
 
     function buildPhotoGrid() {
@@ -631,9 +669,22 @@
                 preview.innerHTML = `<img src="${e.target.result}" alt="${characterName}">`;
                 
                 document.getElementById(`photo-${characterName}-status`).innerText = '✅';
+                updatePhotoProgress();
             };
             reader.readAsDataURL(file);
         }
+    }
+
+    function updatePhotoProgress() {
+        const uploaded = CHARACTERS.filter(char => studentData.photoUploads[char.name] !== null).length;
+        const total = CHARACTERS.length;
+        const percentage = (uploaded / total) * 100;
+        
+        document.getElementById('photo-progress-text').innerText = `${uploaded} of ${total} photos uploaded`;
+        document.getElementById('photo-progress-fill').style.width = percentage + '%';
+        
+        // Enable submit button if at least one photo is uploaded
+        document.getElementById('photo-submit-btn').disabled = uploaded === 0;
     }
 
     function buildVoiceGrid() {
@@ -678,6 +729,7 @@
                     btn.innerText = '✅ Recorded';
                     btn.classList.add('recorded');
                     document.getElementById(`voice-${characterName}-status`).innerText = '✅';
+                    updateVoiceProgress();
                 };
                 
                 studentData.mediaRecorder.start();
@@ -693,22 +745,37 @@
         }
     }
 
-    function submitPhotos() {
-        const allUploaded = CHARACTERS.every(char => studentData.photoUploads[char.name] !== null);
+    function updateVoiceProgress() {
+        const recorded = CHARACTERS.filter(char => studentData.voiceRecordings[char.name] !== null).length;
+        const total = CHARACTERS.length;
+        const percentage = (recorded / total) * 100;
         
-        if (!allUploaded) {
-            showPhotoStatus('❌ Upload photos for all characters!', 'error');
+        document.getElementById('voice-progress-text').innerText = `${recorded} of ${total} recordings done`;
+        document.getElementById('voice-progress-fill').style.width = percentage + '%';
+        
+        // Enable submit button if at least one recording is done
+        document.getElementById('voice-submit-btn').disabled = recorded === 0;
+    }
+
+    function submitPhotos() {
+        const uploaded = CHARACTERS.filter(char => studentData.photoUploads[char.name] !== null).length;
+        
+        if (uploaded === 0) {
+            showPhotoStatus('❌ Upload at least one photo!', 'error');
             return;
         }
         
-        backToStageSelect();
+        showPhotoStatus(`✅ ${uploaded} photos submitted!`, 'success');
+        setTimeout(() => {
+            backToStageSelect();
+        }, 1500);
     }
 
     async function submitVoices() {
-        const allRecorded = CHARACTERS.every(char => studentData.voiceRecordings[char.name] !== null);
+        const recorded = CHARACTERS.filter(char => studentData.voiceRecordings[char.name] !== null).length;
         
-        if (!allRecorded) {
-            showVoiceStatus('❌ Record all characters!', 'error');
+        if (recorded === 0) {
+            showVoiceStatus('❌ Record at least one voice!', 'error');
             return;
         }
 
@@ -719,7 +786,7 @@
         showVoiceStatus('📤 Uploading...', 'loading');
 
         try {
-            // Prepare all data
+            // Prepare all data (only include what's been uploaded/recorded)
             const photoPromises = CHARACTERS.map(char => 
                 new Promise(resolve => {
                     if (studentData.photoUploads[char.name]) {
@@ -761,7 +828,7 @@
                 body: JSON.stringify(submissionData)
             });
 
-            showVoiceStatus('✅ Submitted! Great job!', 'success');
+            showVoiceStatus(`✅ Submitted ${recorded} recordings! Great job!`, 'success');
             btn.innerText = '✅ Done!';
             
             setTimeout(() => {
@@ -770,7 +837,7 @@
         } catch (error) {
             console.error('Error:', error);
             showVoiceStatus('⚠️ Check with your teacher!', 'success');
-            btn.innerText = '🚀 Submit All';
+            btn.innerText = '🚀 Submit Recordings';
             btn.disabled = false;
         }
     }
@@ -778,6 +845,8 @@
     function backToStageSelect() {
         document.getElementById('photo-stage').classList.add('hidden');
         document.getElementById('voice-stage').classList.add('hidden');
+        document.getElementById('photo-status').innerText = '';
+        document.getElementById('voice-status').innerText = '';
         document.getElementById('stage-select-screen').classList.remove('hidden');
     }
 
